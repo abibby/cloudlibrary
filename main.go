@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/abibby/cloudlibrary/cloudlibrary"
 	"github.com/abibby/cloudlibrary/libgourou"
@@ -26,14 +28,39 @@ func main() {
 
 	c := cloudlibrary.New()
 
-	err := c.Login(os.Getenv("CLOUDLIBRARY_LIBRARY"), os.Getenv("CLOUDLIBRARY_USERNAME"), os.Getenv("CLOUDLIBRARY_PASSWORD"))
-	if err != nil {
-		panic(err)
+	login := func() error {
+		return c.Login(os.Getenv("CLOUDLIBRARY_LIBRARY"), os.Getenv("CLOUDLIBRARY_USERNAME"), os.Getenv("CLOUDLIBRARY_PASSWORD"))
+	}
+	if err := login(); err != nil {
+		log.Fatalf("Login: %v", err)
 	}
 
+	downloadTicker := time.NewTicker(5 * time.Minute)
+	defer downloadTicker.Stop()
+	loginTicker := time.NewTicker(24 * time.Hour)
+	defer loginTicker.Stop()
+
+	if err := downloadBooks(c, adeptDir, activate); err != nil {
+		log.Printf("Download books: %v", err)
+	}
+	for {
+		select {
+		case <-loginTicker.C:
+			if err := login(); err != nil {
+				log.Printf("Login: %v", err)
+			}
+		case <-downloadTicker.C:
+			if err := downloadBooks(c, adeptDir, activate); err != nil {
+				log.Printf("Download books: %v", err)
+			}
+		}
+	}
+}
+
+func downloadBooks(c *cloudlibrary.Client, adeptDir string, activate func() error) error {
 	books, err := c.MyBooks()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("retrieve borrowed books: %w", err)
 	}
 
 	for _, b := range books {
@@ -45,38 +72,38 @@ func main() {
 		metadata := MetadataManager{Dir: dir}
 		state, err := metadata.State()
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("read metadata for %q: %w", b.Title, err)
 		}
 		if b.MediaCategory == "AudioBook" {
 			if state.Audiobook {
-				fmt.Printf("Skipping already downloaded audiobook %s\n", b.Title)
+				log.Printf("Skipping already downloaded audiobook %s\n", b.Title)
 				continue
 			}
-			fmt.Printf("Downloading audiobook %s\n", b.Title)
+			log.Printf("Downloading audiobook %s\n", b.Title)
 			err = c.DownloadAudiobook(b.ItemID, dir)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("download audiobook %q: %w", b.Title, err)
 			}
 			if err := metadata.Update(false, true); err != nil {
-				panic(err)
+				return fmt.Errorf("update metadata for %q: %w", b.Title, err)
 			}
 		}
 		if b.MediaCategory == "eBook" {
 			if state.Ebook {
-				fmt.Printf("Skipping already downloaded ebook %s\n", b.Title)
+				log.Printf("Skipping already downloaded ebook %s\n", b.Title)
 				continue
 			}
-			fmt.Printf("Downloading ebook %s\n", b.Title)
+			log.Printf("Downloading ebook %s\n", b.Title)
 			err = activate()
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("activate Adobe device: %w", err)
 			}
 
 			title := ebookTitlePattern.ReplaceAllString(b.Title, "_")
 			filename := filepath.Join(dir, title+".acsm")
 			err = c.DownloadEBook(b, filename)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("download ebook %q: %w", b.Title, err)
 			}
 			err = libgourou.DownloadEPUB(
 				adeptDir,
@@ -84,11 +111,12 @@ func main() {
 				filepath.Join(dir, title+".epub"),
 			)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("download EPUB for %q: %w", b.Title, err)
 			}
 			if err := metadata.Update(true, false); err != nil {
-				panic(err)
+				return fmt.Errorf("update metadata for %q: %w", b.Title, err)
 			}
 		}
 	}
+	return nil
 }
