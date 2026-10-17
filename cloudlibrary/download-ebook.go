@@ -13,9 +13,6 @@ import (
 // DownloadEBook downloads a borrowed ebook's ACSM fulfillment file to filename.
 // Call MyBooks on this client first to load the download credentials.
 func (c *Client) DownloadEBook(book PatronItem, filename string) error {
-	if fileExists(filename) {
-		return nil
-	}
 	if book.MediaCategory != "eBook" {
 		return fmt.Errorf("cloudlibrary: item %q is not an ebook", book.ItemID)
 	}

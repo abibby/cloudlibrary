@@ -108,9 +108,6 @@ func loadAudiobookPlaylist(client *http.Client, req *http.Request, playlist any)
 }
 
 func downloadAudiobookChapter(client *http.Client, trackURL, filename string) error {
-	if fileExists(filename) {
-		return nil
-	}
 	req, err := http.NewRequest(http.MethodGet, trackURL, nil)
 	if err != nil {
 		return err

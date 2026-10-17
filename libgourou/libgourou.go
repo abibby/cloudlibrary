@@ -37,9 +37,6 @@ func Activate(adeptDir string) error {
 // The destination directory is created if needed. An existing destination is
 // replaced only after both commands succeed.
 func DownloadEPUB(adeptDir, acsmPath, epubPath string) error {
-	if fileExists(epubPath) {
-		return nil
-	}
 	if acsmPath == "" || epubPath == "" {
 		return fmt.Errorf("libgourou: ACSM and EPUB paths are required")
 	}

@@ -42,14 +42,30 @@ func main() {
 			author = strings.TrimSpace(strings.TrimSpace(first) + " " + strings.TrimSpace(last))
 		}
 		dir := filepath.Join("/books", author, b.Title)
+		metadata := MetadataManager{Dir: dir}
+		state, err := metadata.State()
+		if err != nil {
+			panic(err)
+		}
 		if b.MediaCategory == "AudioBook" {
+			if state.Audiobook {
+				fmt.Printf("Skipping already downloaded audiobook %s\n", b.Title)
+				continue
+			}
 			fmt.Printf("Downloading audiobook %s\n", b.Title)
 			err = c.DownloadAudiobook(b.ItemID, dir)
 			if err != nil {
 				panic(err)
 			}
+			if err := metadata.Update(false, true); err != nil {
+				panic(err)
+			}
 		}
 		if b.MediaCategory == "eBook" {
+			if state.Ebook {
+				fmt.Printf("Skipping already downloaded ebook %s\n", b.Title)
+				continue
+			}
 			fmt.Printf("Downloading ebook %s\n", b.Title)
 			err = activate()
 			if err != nil {
@@ -68,6 +84,9 @@ func main() {
 				filepath.Join(dir, title+".epub"),
 			)
 			if err != nil {
+				panic(err)
+			}
+			if err := metadata.Update(true, false); err != nil {
 				panic(err)
 			}
 		}
