@@ -19,6 +19,7 @@ var ebookTitlePattern = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
 func main() {
 	godotenv.Load()
+	log.Print("Starting cloudlibrary downloader")
 
 	adeptDir := "/data/adept"
 
