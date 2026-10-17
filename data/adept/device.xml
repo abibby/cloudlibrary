@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<adept:deviceInfo xmlns:adept="http://ns.adobe.com/adept">
+  <adept:deviceClass>Desktop</adept:deviceClass>
+  <adept:deviceSerial>214c738290a55d790824</adept:deviceSerial>
+  <adept:deviceName>e9b5fa64fb86</adept:deviceName>
+  <adept:deviceType>standalone</adept:deviceType>
+  <adept:version name="hobbes" value="10.0.4" />
+  <adept:version name="clientOS" value="Linux 6.12.107+deb13-amd64" />
+  <adept:version name="clientLocale" value="C" />
+  <adept:fingerprint>tpRbA7dxUtGiNS9Bi4ao32riRjk=</adept:fingerprint>
+</adept:deviceInfo>
