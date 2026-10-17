@@ -2,4 +2,4 @@ module github.com/abibby/cloudlibrary
 
 go 1.24.4
 
-require github.com/davecgh/go-spew v1.1.1
+require github.com/joho/godotenv v1.5.1

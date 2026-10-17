@@ -2,24 +2,34 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/abibby/cloudlibrary/cloudlibrary"
 	"github.com/abibby/cloudlibrary/libgourou"
+	"github.com/joho/godotenv"
 )
 
 var ebookTitlePattern = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
 func main() {
+	godotenv.Load()
+
 	adeptDir := "/data/adept"
-	err := libgourou.Activate(adeptDir)
+
+	activate := sync.OnceValue(func() error {
+		return libgourou.Activate(adeptDir)
+	})
+
+	c := cloudlibrary.New()
+
+	err := c.Login(os.Getenv("CLOUDLIBRARY_LIBRARY"), os.Getenv("CLOUDLIBRARY_USERNAME"), os.Getenv("CLOUDLIBRARY_PASSWORD"))
 	if err != nil {
 		panic(err)
 	}
-
-	c := cloudlibrary.New()
 
 	books, err := c.MyBooks()
 	if err != nil {
@@ -41,6 +51,11 @@ func main() {
 		}
 		if b.MediaCategory == "eBook" {
 			fmt.Printf("Downloading ebook %s\n", b.Title)
+			err = activate()
+			if err != nil {
+				panic(err)
+			}
+
 			title := ebookTitlePattern.ReplaceAllString(b.Title, "_")
 			filename := filepath.Join(dir, title+".acsm")
 			err = c.DownloadEBook(b, filename)
